@@ -1,6 +1,7 @@
 # Extension packaging
 *.crx
 *.pem
+*.zip
 
 # OS
 .DS_Store

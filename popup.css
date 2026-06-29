@@ -79,7 +79,7 @@ header {
   gap: 6px;
 }
 .settings-panel.open {
-  max-height: 440px;
+  max-height: 680px;
   padding: 12px 14px 14px;
   border-bottom-color: var(--border);
 }
@@ -470,6 +470,131 @@ footer {
 .slack-btn.sent { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
 .slack-btn.error { color: var(--danger); border-color: var(--danger); background: var(--danger-dim); }
 .slack-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Schedule section ── */
+.sched-section {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sched-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-flex; align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggle-switch input[type="checkbox"] {
+  position: absolute; opacity: 0; width: 0; height: 0;
+}
+.toggle-track {
+  width: 32px; height: 18px;
+  background: var(--border);
+  border-radius: 9px;
+  transition: background .18s;
+  position: relative;
+  display: block;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .18s, background .18s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(14px); }
+.toggle-switch:focus-within .toggle-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Body collapses when schedule is disabled */
+.sched-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .2s ease;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sched-body.open { max-height: 240px; }
+
+/* Recurring / One-time segmented control */
+.sched-type-row {
+  display: flex; gap: 4px;
+}
+.type-btn {
+  flex: 1;
+  padding: 4px 0;
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 11px; font-family: var(--ui);
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.type-btn:hover { color: var(--text); border-color: var(--border-hi); }
+.type-btn.active {
+  background: var(--accent-dim2);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.type-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Row label + field */
+.sched-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.sched-lbl {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 32px;
+}
+.sched-field {
+  flex: 1;
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color .15s;
+  color-scheme: inherit;
+}
+.sched-field:focus { border-color: var(--accent); }
+
+/* Day picker */
+.day-picker {
+  display: flex; gap: 3px; flex: 1;
+}
+.day-btn {
+  flex: 1;
+  padding: 3px 0;
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 10px; font-weight: 600; font-family: var(--ui);
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.day-btn:hover { color: var(--text); border-color: var(--border-hi); }
+.day-btn.active {
+  background: var(--accent-dim2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.day-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Light mode ── */
 @media (prefers-color-scheme: light) {

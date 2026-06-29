@@ -1,8 +1,8 @@
 # Chrome Web Store Listing
 
-## Short description (132 char max — 131 chars)
+## Short description (132 char max — 132 chars)
 
-Track time across tasks with timers and manual entries. Sends to Slack. Adapts to dark or light mode automatically.
+Track tasks with timers and manual entries. Auto-sends summaries to Slack on schedule. Adapts to dark or light mode.
 
 ---
 
@@ -24,6 +24,9 @@ Spans that cross midnight are handled automatically. A +1 badge marks any entry 
 
 SEND TO SLACK
 Connect a Slack Incoming Webhook to post a formatted task summary — with each entry's time range, duration, and a session total — to any channel in one click. A built-in step-by-step guide walks you through creating a webhook if you haven't done it before.
+
+SCHEDULED SENDS
+Set the extension to automatically post your daily summary to Slack at a specific time. Choose recurring sends on configurable days of the week (Monday–Friday by default), or schedule a one-shot send on a specific date and time. If there are no entries when the scheduled time arrives, the send is silently skipped. Schedules fire even when the popup is closed.
 
 DARK AND LIGHT MODE
 The popup automatically matches your operating system's appearance. No setting to toggle — it just works.

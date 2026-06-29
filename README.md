@@ -10,6 +10,7 @@ A Chrome extension for tracking how long you spend across multiple tasks in a da
 - **Editable duration** — when an entry is idle (with a start time) or paused, type a duration directly (`2h 30m`, `1.5h`, `90`, `1:30`) and the end time updates to match
 - **Next-day indicator** — a `+1` badge appears between the end time and duration whenever an entry crosses midnight. Click it to toggle manually; it resets to auto-detection when you edit either time field
 - **Slack integration** — send a formatted task summary to any Slack channel via an Incoming Webhook; a built-in setup guide walks through creating one
+- **Scheduled sends** — automatically post the daily summary to Slack at a configurable time; supports recurring weekday/custom-day schedules or a single one-time send on a specific date; silently skipped if there are no entries
 - **Dark and light mode** — automatically matches the OS color scheme; no setting required
 - **Persistent state** — all entries survive closing and reopening the popup (`chrome.storage.local`)
 - **Copy total** — click the total to copy it to the clipboard
@@ -81,6 +82,17 @@ Total: 4h 30m across 3 tasks
 
 Entries still running or paused are included and marked as _(running)_ or _(paused)_.
 
+### Scheduled sends
+
+In the settings panel, the **Auto-send to Slack** section appears once a webhook URL is saved. Enable the toggle to activate scheduling:
+
+| Option | Description |
+|---|---|
+| **Recurring** | Fires every day at the set time; choose which days of the week to include |
+| **One-time** | Fires once on a specific date and time, then disables itself |
+
+The send runs in the background via a Chrome service worker — the popup does not need to be open. If there are no valid entries when the alarm fires, the send is silently skipped.
+
 #### Creating a webhook URL
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and sign in
@@ -95,10 +107,11 @@ Entries still running or paused are included and marked as _(running)_ or _(paus
 
 ```
 time_span_caculator/
-├── manifest.json     # Manifest V3 — permissions: storage, host_permissions: hooks.slack.com
+├── manifest.json     # Manifest V3 — permissions: storage, alarms; host_permissions: hooks.slack.com
 ├── popup.html        # Extension popup shell
-├── popup.css         # Dark-theme UI styles
-├── popup.js          # All state, timer logic, Slack integration, and DOM
+├── popup.css         # Dark/light-mode UI styles
+├── popup.js          # All state, timer logic, Slack integration, scheduling, and DOM
+├── background.js     # Service worker — Chrome alarms listener, scheduled Slack sends
 ├── store/
 │   ├── listing.md         # Chrome Web Store copy
 │   └── privacy-policy.html  # Hosted privacy policy page
@@ -114,5 +127,6 @@ time_span_caculator/
 - Timer accuracy: start time is stored as an absolute Unix timestamp (`Date.now()`), so the elapsed time is correct even if the popup is closed and reopened mid-session
 - Overnight spans: `minsToStr` wraps modulo 1440; the `dayOffset` field on each entry (0 = same day, 1 = next day) drives both the badge and the span calculation
 - Slack: the webhook URL is stored in `chrome.storage.local` under `tsc_webhook`; the message uses [Slack Block Kit](https://api.slack.com/block-kit); the only outbound host permission is `https://hooks.slack.com/*`
+- Scheduled sends: the schedule object (`tsc_schedule`) is stored in `chrome.storage.local`; `chrome.alarms.create` is called with a `when` timestamp for both recurring and one-shot alarms (recurring adds `periodInMinutes: 1440`); the background service worker reads entries and fires the webhook — the popup does not need to be open; one-time schedules set `enabled: false` after firing
 - Dark/light mode: `color-scheme: dark` is declared on `:root` by default; a `@media (prefers-color-scheme: light)` block overrides all CSS variables and re-declares the `@keyframes pulse-dot` animation with the light-mode accent colour; hardcoded `rgba` values used in badges and hover states are also overridden in the same block
 - No external dependencies — vanilla JS and CSS only

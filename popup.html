@@ -45,6 +45,42 @@
         <li>Choose the channel to post to → click <strong>Allow</strong></li>
         <li>Copy the webhook URL that appears and paste it in the field above</li>
       </ol>
+
+      <div class="sched-section" id="schedSection" style="display:none">
+        <div class="sched-header">
+          <span class="webhook-label">Auto-send to Slack</span>
+          <label class="toggle-switch" aria-label="Enable scheduled send">
+            <input type="checkbox" id="schedEnabled">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="sched-body" id="schedBody">
+          <div class="sched-type-row">
+            <button class="type-btn" data-type="recurring" id="btnRecurring" type="button">Recurring</button>
+            <button class="type-btn" data-type="once"      id="btnOnce"      type="button">One-time</button>
+          </div>
+          <div class="sched-row">
+            <span class="sched-lbl">Time</span>
+            <input type="time" id="schedTime" class="sched-field">
+          </div>
+          <div class="sched-row" id="schedDaysRow">
+            <span class="sched-lbl">Days</span>
+            <div class="day-picker" id="dayPicker">
+              <button class="day-btn" data-day="0" type="button">Su</button>
+              <button class="day-btn" data-day="1" type="button">Mo</button>
+              <button class="day-btn" data-day="2" type="button">Tu</button>
+              <button class="day-btn" data-day="3" type="button">We</button>
+              <button class="day-btn" data-day="4" type="button">Th</button>
+              <button class="day-btn" data-day="5" type="button">Fr</button>
+              <button class="day-btn" data-day="6" type="button">Sa</button>
+            </div>
+          </div>
+          <div class="sched-row" id="schedDateRow" style="display:none">
+            <span class="sched-lbl">Date</span>
+            <input type="date" id="schedDate" class="sched-field">
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="entries" id="entries" role="list"></div>

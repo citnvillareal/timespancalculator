@@ -1,11 +1,13 @@
 'use strict';
 
-const STORAGE_KEY = 'tsc_v3_entries';
-const WEBHOOK_KEY = 'tsc_webhook';
+const STORAGE_KEY  = 'tsc_v3_entries';
+const WEBHOOK_KEY  = 'tsc_webhook';
+const SCHEDULE_KEY = 'tsc_schedule';
 let entries = [];
 let nextId = 1;
 let tickId = null;
 let webhookUrl = '';
+let schedule = { enabled: false, type: 'recurring', time: '17:00', days: [1,2,3,4,5], date: '' };
 
 const storage = (typeof chrome !== 'undefined' && chrome.storage) ? chrome.storage.local : null;
 
@@ -47,6 +49,52 @@ function saveWebhook(url) {
   webhookUrl = url;
   if (storage) storage.set({ [WEBHOOK_KEY]: url });
   else try { localStorage.setItem(WEBHOOK_KEY, url); } catch(_) {}
+}
+
+function loadSchedule(cb) {
+  if (storage) {
+    storage.get(SCHEDULE_KEY, result => {
+      if (result[SCHEDULE_KEY]) schedule = { ...schedule, ...result[SCHEDULE_KEY] };
+      cb();
+    });
+  } else {
+    try {
+      const s = localStorage.getItem(SCHEDULE_KEY);
+      if (s) schedule = { ...schedule, ...JSON.parse(s) };
+    } catch(_) {}
+    cb();
+  }
+}
+
+function saveSchedule() {
+  if (storage) storage.set({ [SCHEDULE_KEY]: schedule });
+  else try { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule)); } catch(_) {}
+}
+
+function nextOccurrenceMs(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  const t = new Date();
+  t.setSeconds(0, 0);
+  t.setHours(h, m);
+  if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
+  return t.getTime();
+}
+
+function applyAlarms() {
+  if (typeof chrome === 'undefined' || !chrome.alarms) return;
+  chrome.alarms.clear('tsc_recurring');
+  chrome.alarms.clear('tsc_once');
+  if (!schedule.enabled || !webhookUrl) return;
+  if (schedule.type === 'recurring') {
+    const when = nextOccurrenceMs(schedule.time);
+    if (when) chrome.alarms.create('tsc_recurring', { when, periodInMinutes: 1440 });
+  } else {
+    if (!schedule.date || !schedule.time) return;
+    const when = new Date(schedule.date + 'T' + schedule.time).getTime();
+    if (when > Date.now()) chrome.alarms.create('tsc_once', { when });
+  }
 }
 
 // ── Entry model ────────────────────────────────────────────────
@@ -648,6 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadWebhook(() => {
     document.getElementById('webhookInp').value = webhookUrl;
     updateSlackBtn();
+    const section = document.getElementById('schedSection');
+    if (section) section.style.display = webhookUrl ? '' : 'none';
   });
 
   document.getElementById('settingsBtn').addEventListener('click', () => {
@@ -671,6 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
   webhookInp.addEventListener('blur', () => {
     saveWebhook(webhookInp.value.trim());
     updateSlackBtn();
+    updateSchedVisibility();
   });
   webhookInp.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); webhookInp.blur(); }
@@ -704,6 +755,77 @@ document.addEventListener('DOMContentLoaded', () => {
     entries = [];
     render();
     save();
+  });
+
+  // ── Schedule UI ──────────────────────────────────────────────
+  function updateSchedVisibility() {
+    const section = document.getElementById('schedSection');
+    if (section) section.style.display = webhookUrl ? '' : 'none';
+  }
+
+  function renderScheduleUI() {
+    document.getElementById('schedEnabled').checked = schedule.enabled;
+    document.getElementById('schedTime').value  = schedule.time || '17:00';
+    document.getElementById('schedDate').value  = schedule.date || '';
+
+    const body = document.getElementById('schedBody');
+    body.classList.toggle('open', schedule.enabled);
+
+    document.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.type === schedule.type);
+    });
+
+    document.getElementById('schedDaysRow').style.display = schedule.type === 'recurring' ? '' : 'none';
+    document.getElementById('schedDateRow').style.display = schedule.type === 'once'      ? '' : 'none';
+
+    document.querySelectorAll('.day-btn').forEach(btn => {
+      btn.classList.toggle('active', schedule.days.includes(Number(btn.dataset.day)));
+    });
+  }
+
+  loadSchedule(() => {
+    updateSchedVisibility();
+    renderScheduleUI();
+  });
+
+  document.getElementById('schedEnabled').addEventListener('change', e => {
+    schedule.enabled = e.target.checked;
+    document.getElementById('schedBody').classList.toggle('open', schedule.enabled);
+    saveSchedule();
+    applyAlarms();
+  });
+
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      schedule.type = btn.dataset.type;
+      renderScheduleUI();
+      saveSchedule();
+      applyAlarms();
+    });
+  });
+
+  document.getElementById('schedTime').addEventListener('change', e => {
+    schedule.time = e.target.value;
+    saveSchedule();
+    applyAlarms();
+  });
+
+  document.getElementById('schedDate').addEventListener('change', e => {
+    schedule.date = e.target.value;
+    saveSchedule();
+    applyAlarms();
+  });
+
+  document.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const day = Number(btn.dataset.day);
+      const idx = schedule.days.indexOf(day);
+      if (idx >= 0) schedule.days.splice(idx, 1);
+      else schedule.days.push(day);
+      btn.classList.toggle('active', schedule.days.includes(day));
+      saveSchedule();
+      applyAlarms();
+    });
   });
 
   const tv = document.getElementById('totalValue');
