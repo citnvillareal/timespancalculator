@@ -1,0 +1,16 @@
+# Extension packaging
+*.crx
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Dependencies (if tooling is ever added)
+node_modules/

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Time Span Calculator",
+  "version": "3.0.0",
+  "description": "Compute the total time span of a work schedule.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://hooks.slack.com/*"]
+}
