@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Time Span Calculator",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Compute the total time span of a work schedule.",
   "action": {
     "default_popup": "popup.html",
