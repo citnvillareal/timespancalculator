@@ -1,3 +1,6 @@
+# Dev helpers
+icons/export-png.html
+
 # Extension packaging
 *.crx
 *.pem
