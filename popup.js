@@ -278,18 +278,78 @@ function applyDuration(entry, mins) {
 
 // ── Slack ────────────────────────────────────────────────
 
+let _saveHintTimer = null;
+function showSaved() {
+  const hint = document.getElementById('saveHint');
+  if (!hint) return;
+  hint.classList.add('visible');
+  clearTimeout(_saveHintTimer);
+  _saveHintTimer = setTimeout(() => hint.classList.remove('visible'), 1500);
+}
+
 function updateSlackBtn() {
   const btn = document.getElementById('slackBtn');
   if (btn) btn.style.display = webhookUrl ? '' : 'none';
+}
+
+function fmtTime12(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  const period = h >= 12 ? 'PM' : 'AM';
+  return (h % 12 || 12) + ':' + m.toString().padStart(2, '0') + ' ' + period;
+}
+
+function updateSchedPeek() {
+  const peek = document.getElementById('schedPeek');
+  if (!peek) return;
+  const settingsOpen = document.getElementById('settingsPanel').classList.contains('open');
+  if (settingsOpen || !schedule.enabled || !webhookUrl) { peek.style.display = 'none'; return; }
+  const DAY = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let label;
+  if (schedule.type === 'once') {
+    const dateStr = schedule.date
+      ? new Date(schedule.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '';
+    label = 'Once' + (dateStr ? ' · ' + dateStr : '') + ' at ' + fmtTime12(schedule.time);
+  } else {
+    const sorted = [...schedule.days].sort((a, b) => a - b);
+    let days;
+    if (sorted.length === 7) days = 'Daily';
+    else if (JSON.stringify(sorted) === '[1,2,3,4,5]') days = 'Mon–Fri';
+    else if (JSON.stringify(sorted) === '[0,6]') days = 'Weekends';
+    else days = sorted.map(d => DAY[d]).join(', ');
+    label = days + ' at ' + fmtTime12(schedule.time);
+  }
+  document.getElementById('schedPeekText').textContent = label;
+  peek.style.display = '';
 }
 
 function formatSlackMessage() {
   const sendable = entries.filter(e => calcSpan(e) !== null);
   if (!sendable.length) return null;
 
-  const d = new Date();
-  const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const d        = new Date();
+  const day      = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const total    = calcTotal();
+  const count    = sendable.length;
+  const taskWord = count === 1 ? 'task' : 'tasks';
 
+  // Workflow Builder webhook → plain text variable payload
+  if (webhookUrl.includes('/triggers/')) {
+    const lines = sendable.map(e => {
+      const name = e.task.trim() || '(unnamed)';
+      const dur  = fmtMins(calcSpan(e));
+      let times;
+      if (e.status === 'running')     times = `${e.start} → (running)`;
+      else if (e.status === 'paused') times = `${e.start} → (paused)`;
+      else { const end = e.end + (e.dayOffset > 0 ? ` +${e.dayOffset}` : ''); times = `${e.start} → ${end}`; }
+      return `• ${name}  ${times}  ${dur}`;
+    });
+    return { message: `⏱ Time Summary — ${day}\n${lines.join('\n')}\nTotal: ${fmtMins(total)} across ${count} ${taskWord}` };
+  }
+
+  // Incoming Webhook → Block Kit JSON
   const lines = sendable.map(e => {
     const name = e.task.trim() || '(unnamed)';
     const dur  = fmtMins(calcSpan(e));
@@ -302,12 +362,8 @@ function formatSlackMessage() {
       const endLabel = e.end + (e.dayOffset > 0 ? ` +${e.dayOffset}` : '');
       times = `${e.start} → ${endLabel}`;
     }
-    return `• *${name}*  ${times}  \`${dur}\``;
+    return `• *${name}*  ${times}  \`${dur}\``;
   });
-
-  const total     = calcTotal();
-  const count     = sendable.length;
-  const taskWord  = count === 1 ? 'task' : 'tasks';
 
   return {
     blocks: [
@@ -347,16 +403,21 @@ async function sendToSlack() {
   btn.textContent = 'Sending…';
 
   try {
+    console.log('[TSC] webhook type:', webhookUrl.includes('/triggers/') ? 'Workflow Builder' : 'Incoming Webhook');
+    console.log('[TSC] payload:', JSON.stringify(payload));
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.text();
+    console.log('[TSC] response:', res.status, body);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${body}`);
     btn.textContent = 'Sent ✓';
     btn.classList.add('sent');
     setTimeout(() => resetSlackBtn(btn), 2200);
-  } catch (_) {
+  } catch (err) {
+    console.error('[TSC] send error:', err);
     btn.textContent = 'Failed — check webhook URL';
     btn.classList.add('error');
     setTimeout(() => resetSlackBtn(btn), 3000);
@@ -437,6 +498,7 @@ function createEntryCard(entry) {
   taskInp.value = entry.task;
   taskInp.setAttribute('aria-label', 'Task name');
   taskInp.addEventListener('input', () => { entry.task = taskInp.value; save(); });
+  taskInp.addEventListener('blur', () => { if (entry.task.trim()) showSaved(); });
 
   const controls = document.createElement('div');
   controls.className = 'entry-controls';
@@ -463,6 +525,7 @@ function createEntryCard(entry) {
     completeTimer(entry);
     refreshCard(card, entry);
     updateTotal();
+    showSaved();
   });
   delBtn.addEventListener('click', () => {
     entries = entries.filter(e => e.id !== entry.id);
@@ -502,6 +565,7 @@ function createEntryCard(entry) {
     refreshCard(card, entry);
     updateTotal();
     save();
+    showSaved();
   });
 
   const sep = document.createElement('span');
@@ -527,6 +591,7 @@ function createEntryCard(entry) {
     refreshCard(card, entry);
     updateTotal();
     save();
+    showSaved();
   });
 
   // Duration — editable input
@@ -550,6 +615,7 @@ function createEntryCard(entry) {
     refreshCard(card, entry);
     updateTotal();
     save();
+    showSaved();
   });
 
   const nextDayBadge = document.createElement('span');
@@ -564,6 +630,7 @@ function createEntryCard(entry) {
     refreshCard(card, entry);
     updateTotal();
     save();
+    showSaved();
   });
   nextDayBadge.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && entry.status === 'idle') {
@@ -572,6 +639,7 @@ function createEntryCard(entry) {
       refreshCard(card, entry);
       updateTotal();
       save();
+      showSaved();
     }
   });
 
@@ -707,6 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.classList.toggle('active', open);
     btn.setAttribute('aria-expanded', String(open));
     panel.setAttribute('aria-hidden', String(!open));
+    updateSchedPeek();
     if (open) document.getElementById('webhookInp').focus();
   });
 
@@ -717,11 +786,28 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle.setAttribute('aria-expanded', String(open));
   });
 
+  document.querySelectorAll('.guide-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.guide-tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      const paneId = tab.dataset.pane;
+      document.querySelectorAll('.guide-list').forEach(p => {
+        p.style.display = p.id === paneId ? '' : 'none';
+      });
+    });
+  });
+
   const webhookInp = document.getElementById('webhookInp');
   webhookInp.addEventListener('blur', () => {
     saveWebhook(webhookInp.value.trim());
     updateSlackBtn();
     updateSchedVisibility();
+    updateSchedPeek();
+    if (webhookInp.value.trim()) showSaved();
   });
   webhookInp.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); webhookInp.blur(); }
@@ -732,6 +818,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('slackBtn').addEventListener('click', sendToSlack);
+
+  const schedPeekEl = document.getElementById('schedPeek');
+  function openSettingsFromPeek() {
+    const panel = document.getElementById('settingsPanel');
+    const btn   = document.getElementById('settingsBtn');
+    if (!panel.classList.contains('open')) {
+      panel.classList.add('open');
+      btn.classList.add('active');
+      btn.setAttribute('aria-expanded', 'true');
+      panel.setAttribute('aria-hidden', 'false');
+      updateSchedPeek();
+      document.getElementById('webhookInp').focus();
+    }
+  }
+  schedPeekEl.addEventListener('click', openSettingsFromPeek);
+  schedPeekEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSettingsFromPeek(); } });
 
   document.getElementById('addBtn').addEventListener('click', () => {
     const last = entries[entries.length - 1];
@@ -786,6 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSchedule(() => {
     updateSchedVisibility();
     renderScheduleUI();
+    updateSchedPeek();
   });
 
   document.getElementById('schedEnabled').addEventListener('change', e => {
@@ -793,6 +896,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('schedBody').classList.toggle('open', schedule.enabled);
     saveSchedule();
     applyAlarms();
+    updateSchedPeek();
+    showSaved();
   });
 
   document.querySelectorAll('.type-btn').forEach(btn => {
@@ -801,6 +906,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderScheduleUI();
       saveSchedule();
       applyAlarms();
+      updateSchedPeek();
+      showSaved();
     });
   });
 
@@ -808,12 +915,16 @@ document.addEventListener('DOMContentLoaded', () => {
     schedule.time = e.target.value;
     saveSchedule();
     applyAlarms();
+    updateSchedPeek();
+    showSaved();
   });
 
   document.getElementById('schedDate').addEventListener('change', e => {
     schedule.date = e.target.value;
     saveSchedule();
     applyAlarms();
+    updateSchedPeek();
+    showSaved();
   });
 
   document.querySelectorAll('.day-btn').forEach(btn => {
@@ -825,6 +936,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.toggle('active', schedule.days.includes(day));
       saveSchedule();
       applyAlarms();
+      updateSchedPeek();
+      showSaved();
     });
   });
 

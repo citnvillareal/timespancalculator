@@ -83,6 +83,29 @@ header {
   padding: 12px 14px 14px;
   border-bottom-color: var(--border);
 }
+/* Toast notification */
+.save-toast {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-44px);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 11px; font-weight: 600;
+  color: var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), opacity .18s ease;
+  z-index: 100;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+.save-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
 .webhook-label {
   font-size: 10px; font-weight: 700;
   letter-spacing: 0.09em; text-transform: uppercase;
@@ -115,35 +138,74 @@ header {
 .guide-arrow { transition: transform .18s ease; flex-shrink: 0; }
 .guide-toggle[aria-expanded="true"] .guide-arrow { transform: rotate(180deg); }
 
-/* Step list */
+/* Guide steps expandable container */
 .guide-steps {
   overflow: hidden;
   max-height: 0;
   transition: max-height .25s ease;
+  padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+}
+.guide-steps.open { max-height: 480px; }
+
+/* Tab switcher */
+.guide-tabs {
+  display: flex; gap: 4px;
+  padding: 6px 0 4px;
+}
+.guide-tab {
+  flex: 1; background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--ui); font-size: 10px; font-weight: 600;
+  letter-spacing: .04em; padding: 4px 6px;
+  cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+}
+.guide-tab:hover { color: var(--text); border-color: var(--border-hi); }
+.guide-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* Step list */
+.guide-list {
   list-style: none;
   padding: 0; margin: 0;
   counter-reset: step-counter;
   display: flex; flex-direction: column;
 }
-.guide-steps.open { max-height: 320px; }
-.guide-steps li {
+.guide-list li {
   display: flex; gap: 8px; align-items: baseline;
   padding: 5px 0;
   counter-increment: step-counter;
   font-size: 10px; color: var(--text-muted); line-height: 1.45;
   border-bottom: 1px solid var(--border);
 }
-.guide-steps li:first-child { border-top: 1px solid var(--border); margin-top: 4px; }
-.guide-steps li::before {
+.guide-list li:first-child { border-top: 1px solid var(--border); margin-top: 2px; }
+.guide-list li::before {
   content: counter(step-counter, decimal-leading-zero);
   font-family: var(--mono); font-size: 9px; font-weight: 700;
   color: var(--accent); flex-shrink: 0; min-width: 18px;
   padding-top: 1px;
 }
-.guide-steps strong { color: var(--text); font-weight: 600; }
-.guide-steps em { color: var(--text-muted); font-style: normal; }
-.guide-steps a { color: var(--accent); text-decoration: none; }
-.guide-steps a:hover { text-decoration: underline; }
+.guide-list strong { color: var(--text); font-weight: 600; }
+.guide-list em { color: var(--text-muted); font-style: normal; }
+.guide-list a { color: var(--accent); text-decoration: none; }
+.guide-list a:hover { text-decoration: underline; }
+
+/* ── Schedule peek strip ── */
+.sched-peek {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+  user-select: none;
+}
+.sched-peek:hover { color: var(--accent); background: var(--accent-dim); }
+.sched-peek:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* ── Entries container ── */
 .entries {

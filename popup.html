@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="app">
+    <div class="save-toast" id="saveHint">Saved</div>
     <header>
       <svg class="header-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
@@ -17,17 +18,21 @@
       </svg>
       <span class="app-title">Time Span Calculator</span>
       <button class="settings-btn" id="settingsBtn" type="button" title="Slack settings" aria-expanded="false" aria-controls="settingsPanel">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="7" cy="7" r="2.2" stroke="currentColor" stroke-width="1.3"/>
-          <path d="M7 1v1.4M7 11.6V13M1 7h1.4M11.6 7H13M2.93 2.93l1 1M10.07 10.07l1 1M11.07 2.93l-1 1M3.93 10.07l-1 1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <svg width="13" height="11" viewBox="0 0 13 11" fill="none" aria-hidden="true">
+          <line x1="0.5" y1="1.5" x2="12.5" y2="1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="4" cy="1.5" r="1.5" fill="var(--bg)" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="0.5" y1="5.5" x2="12.5" y2="5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="9" cy="5.5" r="1.5" fill="var(--bg)" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="0.5" y1="9.5" x2="12.5" y2="9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="5.5" cy="9.5" r="1.5" fill="var(--bg)" stroke="currentColor" stroke-width="1.3"/>
         </svg>
       </button>
     </header>
 
     <div class="settings-panel" id="settingsPanel" aria-hidden="true">
-      <label class="webhook-label" for="webhookInp">Slack Incoming Webhook URL</label>
+      <label class="webhook-label" for="webhookInp">Slack Webhook URL</label>
       <input type="text" id="webhookInp" class="webhook-input"
-             placeholder="https://hooks.slack.com/services/…"
+             placeholder="https://hooks.slack.com/…"
              autocomplete="off" spellcheck="false">
       <button class="guide-toggle" id="guideToggle" type="button" aria-expanded="false" aria-controls="guideSteps">
         How to get a webhook URL
@@ -35,16 +40,34 @@
           <path d="M1.5 2.5L4 5L6.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <ol class="guide-steps" id="guideSteps">
-        <li>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and sign in to your workspace</li>
-        <li>Click <strong>Create New App</strong> → choose <strong>From scratch</strong></li>
-        <li>Give it a name (e.g. <em>Time Tracker</em>), select your workspace → <strong>Create App</strong></li>
-        <li>In the left sidebar under <em>Features</em>, click <strong>Incoming Webhooks</strong></li>
-        <li>Toggle <strong>Activate Incoming Webhooks</strong> to <strong>On</strong></li>
-        <li>Click <strong>Add New Webhook to Workspace</strong></li>
-        <li>Choose the channel to post to → click <strong>Allow</strong></li>
-        <li>Copy the webhook URL that appears and paste it in the field above</li>
-      </ol>
+      <div class="guide-steps" id="guideSteps">
+        <div class="guide-tabs" role="tablist">
+          <button class="guide-tab active" data-pane="paneWorkflow" role="tab" aria-selected="true">Workflow Builder</button>
+          <button class="guide-tab" data-pane="paneIncoming" role="tab" aria-selected="false">Incoming Webhook</button>
+        </div>
+        <ol class="guide-list" id="paneWorkflow">
+          <li>In Slack, go to <strong>More</strong> (•••) → <strong>Tools</strong> → <strong>Workflows</strong></li>
+          <li>Click <strong>+</strong>, name it (e.g. <em>Time Tracker</em>), click <strong>Next</strong></li>
+          <li>Choose <strong>Starts with a webhook</strong>, click <strong>Continue</strong></li>
+          <li>Click <strong>Add variable</strong>: name it <em>message</em>, type <strong>Text</strong>, click <strong>Save</strong></li>
+          <li>Copy the <strong>Webhook URL</strong> and paste it in the field above</li>
+          <li>Click <strong>Add Step</strong>, choose <strong>Send a message to a channel</strong></li>
+          <li>Choose the channel to post to</li>
+          <li>In the message body, click <strong>Insert a variable</strong></li>
+          <li>Select <strong>message</strong> from the list, then click <strong>Save</strong></li>
+          <li>Click <strong>Publish</strong> — your workflow is live</li>
+        </ol>
+        <ol class="guide-list" id="paneIncoming" style="display:none">
+          <li>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and sign in</li>
+          <li>Click <strong>Create New App</strong>, choose <strong>From scratch</strong></li>
+          <li>Name it (e.g. <em>Time Tracker</em>), select your workspace, click <strong>Create App</strong></li>
+          <li>In the sidebar under <em>Features</em>, click <strong>Incoming Webhooks</strong></li>
+          <li>Toggle <strong>Activate Incoming Webhooks</strong> to <strong>On</strong></li>
+          <li>Click <strong>Add New Webhook to Workspace</strong></li>
+          <li>Choose a channel, then click <strong>Allow</strong></li>
+          <li>Copy the webhook URL and paste it in the field above</li>
+        </ol>
+      </div>
 
       <div class="sched-section" id="schedSection" style="display:none">
         <div class="sched-header">
@@ -81,6 +104,15 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="sched-peek" id="schedPeek" style="display:none" role="button" tabindex="0" title="Click to open settings">
+      <svg width="10" height="10" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="10" y1="10" x2="10" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="10" y1="10" x2="13.5" y2="13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span id="schedPeekText"></span>
     </div>
 
     <div class="entries" id="entries" role="list"></div>
